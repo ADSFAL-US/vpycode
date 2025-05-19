@@ -61,6 +61,7 @@ class AiChat:
         self.last_project_structure = ""
         
         self._setup_ui()
+        
     
     def _setup_logging(self):
         """Настраивает логгирование в файл"""
@@ -342,192 +343,39 @@ class AiChat:
                 debug_info += f"Структура получена: {'Да' if structure else 'Нет'}\n"
                 debug_info += f"Размер структуры: {len(structure)} символов\n\n"
                 debug_info += f"Первые 200 символов структуры:\n```\n{structure[:200]}...\n```\n\n"
-                debug_info += "Структура будет отправлена с каждым запросом к ИИ."
                 
-                self.chat_history.insert(tk.END, debug_info, "info")
-                self.chat_history.insert(tk.END, "\n\n", "bot")
+                # Отправляем запрос к API и обрабатываем его
+                response = self._send_request_with_retries(structure)
+                if response is not None:
+                    self.chat_history.insert(tk.END, response, "user")
+                else:
+                    self.chat_history.insert(tk.END, "Не удалось получить ответ от ассистента.", "error")
+                
             except Exception as e:
-                self.chat_history.insert(tk.END, f"Ошибка при проверке структуры: {str(e)}", "error")
-            
-            self.chat_history.configure(state="disabled")
-            self.chat_history.see(tk.END)
-            return
-        
-        # Команда отладки для просмотра API запроса
-        if message.lower() in ["покажи запрос", "дебаг запроса", "отладка запроса"]:
-            self.add_user_message(message)
-            
-            # Показываем начало ответа
-            self.chat_history.configure(state="normal")
-            self.chat_history.insert(tk.END, "Ассистент: ", "system")
-            
+                self.chat_history.insert(tk.END, f"Ошибка при получении структуры: {str(e)}", "error")
+            finally:
+                self.chat_history.configure(state="disabled")
+
+    def _send_request_with_retries(self, data):
+        """Отправка данных с повторными попытками при неудаче"""
+        api_url = "YOUR_API_ENDPOINT"
+        headers = {"Authorization": "Bearer YOUR_API_KEY"}
+        retry_count = 0
+        success = False
+
+        while retry_count < 10:
             try:
-                # Создаем запрос как при обычной отправке, но не отправляем
-                debug_messages = []
-                
-                # Добавляем системную инструкцию
-                initial_prompt = self.ai_settings.get("initial_prompt", DEFAULT_AI_PROMPT)
-                if initial_prompt:
-                    debug_messages.append({
-                        "role": "system",
-                        "content": initial_prompt
-                    })
-                
-                # Получаем свежую структуру проекта
-                current_dir = os.getcwd()
-                structure = self._get_simple_project_structure(current_dir)
-                
-                # Добавляем структуру проекта
-                if structure:
-                    structure_message = {
-                        "role": "system", 
-                        "content": f"Текущая структура файловой системы проекта:\n{structure}"
-                    }
-                    debug_messages.append(structure_message)
-                
-                # Добавляем историю сообщений (максимум последние 3 для краткости)
-                debug_messages.extend(self.chat_messages[-3:])
-                
-                # Добавляем текущее сообщение для отладки
-                debug_messages.append({"role": "user", "content": "Это тестовое сообщение для отладки запроса"})
-                
-                # Создаем отладочные данные для запроса
-                api_settings = self.ai_settings.get("api_settings", DEFAULT_API_SETTINGS)
-                debug_data = {
-                    "model": api_settings.get("model", "deepseek/deepseek-r1"),
-                    "messages": debug_messages,
-                    "temperature": api_settings.get("temperature", 0.7),
-                    "max_tokens": api_settings.get("max_tokens", 1000),
-                    "stream": True
-                }
-                
-                # Выводим отладочную информацию
-                import json
-                debug_json = json.dumps(debug_data, ensure_ascii=False, indent=2)
-                
-                # Выводим информацию в чат
-                debug_info = "Отладочная информация API запроса:\n\n"
-                debug_info += f"Модель: {debug_data['model']}\n"
-                debug_info += f"Температура: {debug_data['temperature']}\n"
-                debug_info += f"Макс. токенов: {debug_data['max_tokens']}\n"
-                debug_info += f"Количество сообщений: {len(debug_messages)}\n\n"
-                
-                # Выводим сообщения
-                debug_info += "Сообщения в запросе:\n"
-                for i, msg in enumerate(debug_messages):
-                    role = msg.get('role', 'unknown')
-                    content = msg.get('content', '')
-                    content_preview = content[:100] + '...' if len(content) > 100 else content
-                    debug_info += f"[{i}] {role} ({len(content)} символов): {content_preview}\n\n"
-                
-                # Проверяем наличие структуры проекта
-                has_structure = any("структура файловой системы" in msg.get("content", "").lower() 
-                                  for msg in debug_messages if msg.get("role") == "system")
-                debug_info += f"Структура проекта в запросе: {'Да' if has_structure else 'НЕТ'}\n\n"
-                
-                # Сохраняем полный JSON в отдельный файл для удобства
-                log_filename = "api_debug_log.json"
-                with open(log_filename, "w", encoding="utf-8") as f:
-                    f.write(debug_json)
-                
-                debug_info += f"Полный JSON запрос сохранен в файле: {log_filename}"
-                
-                # Выводим информацию в чат
-                self.chat_history.insert(tk.END, debug_info, "info")
-            except Exception as e:
-                self.chat_history.insert(tk.END, f"Ошибка при создании отладочного запроса: {str(e)}", "error")
-                import traceback
-                traceback.print_exc()
-                
-            self.chat_history.insert(tk.END, "\n\n", "bot")
-            self.chat_history.configure(state="disabled")
-            self.chat_history.see(tk.END)
-            return
-        
-        # Специальная команда для проверки, получает ли ИИ структуру проекта
-        if message.lower() in ["тест структуры", "тест структуры проекта"]:
-            self.add_user_message(message)
-            
-            # Показываем начало ответа
-            self.chat_history.configure(state="normal")
-            self.chat_history.insert(tk.END, "Ассистент: ", "system")
-            self.chat_history.configure(state="disabled")
-            self.chat_history.see(tk.END)
-            
-            # Скрываем кнопку отправки и показываем кнопку остановки генерации
-            self.send_button.pack_forget()
-            self.stop_button.pack(side="right")
-            
-            # Создаем специальный запрос к ИИ для проверки получения структуры
-            test_message = "Это тест структуры проекта. Пожалуйста, ОБЯЗАТЕЛЬНО: 1) Подтверди, что ты видишь структуру проекта; 2) Кратко опиши структуру проекта, которую ты видишь; 3) Перечисли 5 файлов из этой структуры."
-            
-            # Сохраняем в истории запрос для теста
-            self.chat_messages.append({"role": "user", "content": test_message})
-            
-            # Запускаем генерацию ответа с тестовым запросом
-            threading.Thread(target=self._generate_response, args=(test_message,)).start()
-            return
-        
-        # Экстренный случай - проверяем запрос структуры напрямую (без AI)
-        if message.lower().strip() in ["структура проекта", "расскажи структуру проекта", "покажи структуру проекта", 
-                                      "расскажи мне структуру проекта", "структура файлов"]:
-            # Добавляем сообщение пользователя в историю
-            self.add_user_message(message)
-            
-            # Показываем начало ответа
-            self.chat_history.configure(state="normal")
-            self.chat_history.insert(tk.END, "Ассистент: ", "system")
-            self.chat_history.configure(state="disabled")
-            self.chat_history.see(tk.END)
-            
-            try:
-                # Простой список файлов и директорий из текущего каталога
-                current_dir = os.getcwd()
-                structure = self._get_simple_project_structure(current_dir)
-                structure_text = f"Вот структура проекта из директории {current_dir}:\n\n```\n{structure}\n```"
-                
-                # Обновляем интерфейс с полученной структурой
-                self._update_response(structure_text)
-                
-                # Добавляем структуру в историю сообщений
-                self.chat_messages.append({"role": "user", "content": message})
-                self.chat_messages.append({"role": "assistant", "content": structure_text})
-                
-                return
-            except Exception as e:
-                print(f"Ошибка при получении структуры проекта: {str(e)}")
-                self._update_response(f"Произошла ошибка при получении структуры проекта: {str(e)}", "error")
-                return
-        
-        # Стандартная обработка других сообщений
-        # Добавляем сообщение пользователя в историю
-        self.add_user_message(message)
-        
-        # Сохраняем сообщение пользователя в истории
-        self.chat_messages.append({"role": "user", "content": message})
-        
-        # Начинаем новое сообщение от бота
-        self.chat_history.configure(state="normal")
-        self.chat_history.insert(tk.END, "Ассистент: ", "system")
-        self.chat_history.configure(state="disabled")
-        self.chat_history.see(tk.END)
-        
-        # Скрываем кнопку отправки и показываем кнопку остановки генерации
-        self.send_button.pack_forget()
-        self.stop_button.pack(side="right")
-        
-        # Сбрасываем флаг остановки генерации
-        self.stop_generation = False
-        
-        # Debug print before thread start
-        self.log_debug(f"\n!!!! ЗАПУСК НОВОГО ПОТОКА _generate_response (main thread ID: {threading.get_ident()})")
-        self.log_debug(f"!!!! Сообщение: {message[:50]}...")
-        
-        # Запускаем генерацию ответа в отдельном потоке
-        thread = threading.Thread(target=self._generate_response, args=(message,))
-        thread.daemon = True  # Make sure thread doesn't block app exit
-        thread.start()
-        self.log_debug(f"!!!! Поток запущен с ID: {thread.ident}")
+                response = requests.post(api_url, headers=headers, json={"data": data})
+                response.raise_for_status()  # Проверка статуса ответа
+                return response.json()  # Возврат успешного ответа
+            except requests.exceptions.RequestException as e:
+                retry_count += 1
+                wait_time = 2 ** retry_count  # Экспоненциальное время ожидания
+                print(f"Ошибка: {str(e)}. Повторная попытка {retry_count}/10 через {wait_time} секунд.")
+                time.sleep(wait_time)  # Ожидание перед повтором
+
+        print("Ошибка: максимальное количество попыток исчерпано.")
+        return None  # Возврат None в случае неудачи
     
     def _get_simple_project_structure(self, directory):
         """Получает простую структуру проекта без рекурсии"""

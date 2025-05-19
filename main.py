@@ -914,26 +914,28 @@ class CodeEditor(ctk.CTk):
                 raise Exception("Нет подключения к интернету. Проверьте ваше соединение.")
             
             # Отправляем запрос к API
-            response = self._call_deepseek_api(messages)
-            
-            # Получаем ответ из результата API
-            if response and "choices" in response and response["choices"] and self.is_generating:
-                ai_message = response["choices"][0]["message"]["content"]
+            for i in range(10):
+                response = self._call_deepseek_api(messages)
                 
-                # Сохраняем ответ в истории
-                self.chat_messages.append({"role": "assistant", "content": ai_message})
-                
-                # Показываем консоль, если она скрыта
-                if not self.console_frame.winfo_viewable():
-                    self.toggle_console()
-                
-                # Обновляем интерфейс
-                self._update_ai_response(ai_message)
-            elif not self.is_generating:
-                # Если генерация была остановлена, ничего не делаем
-                pass
-            else:
-                self._update_ai_response("Ошибка: Не удалось получить ответ от API.")
+                # Получаем ответ из результата API
+                if response and "choices" in response and response["choices"] and self.is_generating:
+                    ai_message = response["choices"][0]["message"]["content"]
+                    
+                    # Сохраняем ответ в истории
+                    self.chat_messages.append({"role": "assistant", "content": ai_message})
+                    
+                    # Показываем консоль, если она скрыта
+                    if not self.console_frame.winfo_viewable():
+                        self.toggle_console()
+                    
+                    # Обновляем интерфейс
+                    self._update_ai_response(ai_message)
+                elif not self.is_generating:
+                    # Если генерация была остановлена, ничего не делаем
+                    pass
+                else:
+                    self._update_ai_response("Ошибка: Не удалось получить ответ от API.\nповторяю попытку...")
+                    continue
         except requests.exceptions.RequestException as e:
             if "NameResolutionError" in str(e):
                 self._update_ai_response(
