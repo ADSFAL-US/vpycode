@@ -1,0 +1,37 @@
+# Python bytecode files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+settings.json
+logs/
+temp_vpycode/
+
+# User settings
+settings.py
+
+# Windows specific
+desktop.ini
+Thumbs.db
+ehthumbs.db
+
+# Backup files
+*.bak
+*~ 
