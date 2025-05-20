@@ -1,8 +1,6 @@
-"""
-Модуль для работы с чатом ИИ в редакторе кода.
-"""
-
+"""Модуль для работы с чатом ИИ в редакторе кода."""
 import tkinter as tk
+import customtkinter as ctk
 from tkinter import scrolledtext, Frame, Scrollbar, Text, Button, Label, Menu, filedialog
 import threading
 import requests
@@ -248,7 +246,7 @@ class AiChat:
             wrap="word", 
             height=3, 
             bd=0,
-            bg=KanagawaTheme.BG, 
+            bg=KanagawaTheme.BACKGROUND, 
             fg=KanagawaTheme.FOREGROUND,
             insertbackground=KanagawaTheme.CURSOR,
             font=("Consolas", 10), 
@@ -1862,13 +1860,9 @@ class AiChat:
         self.add_bot_message("История чата очищена. Можно начинать с чистого листа!")
     
     def toggle(self):
-        """Переключает видимость чата с ИИ"""
-        if self.frame.winfo_viewable():
-            self.frame.grid_remove()
-        else:
-            self.frame.grid()
-            # Устанавливаем фокус на поле ввода
-            self.chat_input.focus_set()
+        """For backwards compatibility - now handled directly in main app"""
+        # Toggle is now handled by the main application
+        pass
     
     def stop_response_generation(self):
         """Останавливает генерацию ответа"""

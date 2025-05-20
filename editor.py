@@ -206,7 +206,9 @@ class CodeEditor:
         """Обновляет информацию о позиции курсора"""
         current_position = self.text.index(tk.INSERT)
         line, col = current_position.split('.')
-        self.parent.update_status(f"Строка: {line}, Символ: {int(col)+1}")
+        # Обновляем статус в родительском приложении, если есть метод update_cursor_position
+        if hasattr(self.parent, 'update_cursor_position'):
+            self.parent.update_cursor_position()
     
     def _update_line_numbers(self):
         """Обновляет номера строк"""
@@ -361,18 +363,55 @@ class CodeEditor:
         self._on_text_change()
     
     def set_current_file(self, file_path):
-        """Установить текущий файл"""
+        """Устанавливает текущий файл"""
         self.current_file = file_path
         if file_path:
-            try:
-                extension = os.path.splitext(file_path)[1]
-                self.current_filetype = extension
-            except:
-                self.current_filetype = '.py'
+            _, ext = os.path.splitext(file_path)
+            if ext:
+                self.current_filetype = ext
         self._highlight_syntax()
     
+    def apply_theme(self, theme):
+        """
+        Применяет тему к редактору кода.
+        
+        Args:
+            theme: Объект темы с цветами
+        """
+        # Обновляем цвета редактора
+        self.text.configure(
+            bg=theme.BACKGROUND,
+            fg=theme.FOREGROUND,
+            insertbackground=theme.CURSOR,
+            selectbackground=theme.SELECTION
+        )
+        
+        # Обновляем цвета номеров строк
+        self.line_numbers.configure(
+            bg=theme.BACKGROUND,
+            fg=theme.COMMENT
+        )
+        
+        # Обновляем теги для подсветки синтаксиса
+        self.text.tag_configure("keyword", foreground=theme.KEYWORD)
+        self.text.tag_configure("string", foreground=theme.STRING)
+        self.text.tag_configure("comment", foreground=theme.COMMENT)
+        self.text.tag_configure("function", foreground=theme.FUNCTION)
+        self.text.tag_configure("class", foreground=theme.CLASS)
+        self.text.tag_configure("number", foreground=theme.NUMBER)
+        self.text.tag_configure("operator", foreground=theme.OPERATOR)
+        
+        # Обновляем подсветку текущей строки
+        self.text.tag_config("current_line", background=theme.LINE_HIGHLIGHT)
+        
+        # Применяем подсветку синтаксиса
+        self._highlight_syntax()
+        
+        # Обновляем подсветку текущей строки
+        self._highlight_current_line()
+    
     def focus(self):
-        """Установить фокус на редактор"""
+        """Устанавливает фокус на редактор"""
         self.text.focus_set()
     
     def insert(self, position, text):

@@ -191,4 +191,53 @@ class PluginManager:
                 "active": name in self.active_plugins
             })
         
-        return plugin_info 
+        return plugin_info
+    
+    def get_all_plugins(self):
+        """
+        Возвращает все загруженные плагины.
+        
+        Returns:
+            Список экземпляров плагинов
+        """
+        return list(self.plugins.values())
+    
+    def get_plugin_by_name(self, name):
+        """
+        Возвращает плагин по его имени.
+        
+        Args:
+            name (str): Имя плагина
+            
+        Returns:
+            Plugin: Экземпляр плагина или None, если плагин не найден
+        """
+        return self.plugins.get(name)
+    
+    def get_plugins_for_extension(self, extension):
+        """
+        Возвращает список плагинов, поддерживающих указанное расширение файла.
+        
+        Args:
+            extension (str): Расширение файла (например, '.py')
+            
+        Returns:
+            List[Plugin]: Список плагинов
+        """
+        supported_plugins = []
+        
+        for plugin in self.plugins.values():
+            if hasattr(plugin, 'supported_extensions') and extension in plugin.supported_extensions:
+                supported_plugins.append(plugin)
+                
+        return supported_plugins
+    
+    def activate_plugins(self, app):
+        """
+        Активирует все плагины.
+        
+        Args:
+            app: Экземпляр приложения
+        """
+        for plugin_name in list(self.plugins.keys()):
+            self.activate_plugin(plugin_name)

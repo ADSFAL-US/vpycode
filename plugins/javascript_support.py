@@ -59,9 +59,9 @@ class JavaScriptSupport(Plugin):
         
         # Проверяем наличие Node.js
         if not self.nodejs_path:
-            self.app.write_to_console("Внимание: Node.js не найден. Установите Node.js для запуска JavaScript.\n", "error")
+            print("Внимание: Node.js не найден. Установите Node.js для запуска JavaScript.")
         else:
-            self.app.write_to_console(f"Node.js найден: {self.nodejs_path}\n", "info")
+            print(f"Node.js найден: {self.nodejs_path}")
     
     def deactivate(self):
         """Деактивация плагина."""
@@ -84,7 +84,7 @@ class JavaScriptSupport(Plugin):
             Процесс выполнения кода
         """
         if not self.nodejs_path:
-            self.app.write_to_console("Ошибка: Node.js не найден.\n", "error")
+            print("Ошибка: Node.js не найден.")
             return None
             
         try:
@@ -101,7 +101,7 @@ class JavaScriptSupport(Plugin):
             # Возвращаем процесс
             return process
         except Exception as e:
-            self.app.write_to_console(f"Ошибка запуска JavaScript: {str(e)}\n", "error")
+            print(f"Ошибка запуска JavaScript: {str(e)}")
             return None
     
     def run_current_js(self):
@@ -109,7 +109,7 @@ class JavaScriptSupport(Plugin):
         # Проверяем, что текущий файл - JavaScript
         current_file = self.app.current_file
         if not current_file or not current_file.lower().endswith(('.js', '.mjs', '.cjs')):
-            self.app.write_to_console("Текущий файл не является JavaScript файлом.\n", "error")
+            print("Текущий файл не является JavaScript файлом.")
             return
             
         # Убеждаемся, что консоль видима
@@ -123,7 +123,7 @@ class JavaScriptSupport(Plugin):
         self.app.save_file()
         
         # Запускаем файл
-        self.app.write_to_console(f"Запуск JavaScript: {os.path.basename(current_file)}\n", "info")
+        print(f"Запуск JavaScript: {os.path.basename(current_file)}")
         
         # Используем Node.js для запуска JavaScript
         process = self.run_javascript(current_file)
@@ -140,14 +140,14 @@ class JavaScriptSupport(Plugin):
             # Проверяем код возврата
             if process.returncode == 0:
                 if stdout:
-                    self.app.write_to_console(stdout)
-                self.app.write_to_console("\nJavaScript выполнен успешно.\n", "success")
+                    print(stdout)
+                print("\nJavaScript выполнен успешно.")
             else:
                 if stdout:
-                    self.app.write_to_console(stdout)
+                    print(stdout)
                 if stderr:
-                    self.app.write_to_console(stderr, "error")
-                self.app.write_to_console(f"\nJavaScript завершился с ошибкой (код {process.returncode}).\n", "error")
+                    print(stderr)
+                print(f"\nJavaScript завершился с ошибкой (код {process.returncode}).")
             
             # Очищаем ссылку на процесс
             self.app.current_process = None

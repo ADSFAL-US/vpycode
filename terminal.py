@@ -233,9 +233,9 @@ class Terminal:
     def toggle(self):
         """Переключает видимость консоли"""
         if self.frame.winfo_viewable():
-            self.frame.grid_remove()
+            self.frame.pack_forget()
         else:
-            self.frame.grid()
+            self.frame.pack(fill="both", side="bottom", padx=0, pady=0, expand=False, height=150)
             # Устанавливаем фокус на консоль при отображении
             self.output.focus_set()
     

@@ -45,29 +45,39 @@ class Plugin(ABC):
             Созданная кнопка
         """
         print(f"[DEBUG] {self.name}: Попытка добавить кнопку в боковую панель")
-        sidebar_frame = self._find_sidebar_frame()
-        if not sidebar_frame:
-            print(f"[ERROR] {self.name}: Не удалось найти фрейм боковой панели")
-            return None
-            
-        button = ctk.CTkButton(
-            sidebar_frame, 
-            text=text, 
-            width=40, 
-            height=40,
-            fg_color="transparent", 
-            hover_color=self.app.theme.SELECTION,
-            text_color=self.app.theme.FOREGROUND, 
-            command=command
-        )
         
-        if position == "top":
-            button.pack(side="top", pady=5)
-        else:
-            button.pack(side="bottom", pady=5)
+        # Используем централизованный метод добавления кнопок из основного приложения
+        if hasattr(self.app, 'add_tool_button'):
+            # Используем новый метод
+            button = self.app.add_tool_button(text, command, tooltip=self.name, position=position)
+            print(f"[DEBUG] {self.name}: Кнопка успешно добавлена в боковую панель")
+            return button
+        # Запасной вариант, если метод не найден (обратная совместимость)
+        elif hasattr(self.app, 'tools_frame'):
+            sidebar_frame = self.app.tools_frame
+            # Создаем кнопку
+            button = ctk.CTkButton(
+                sidebar_frame, 
+                text=text, 
+                width=35, 
+                height=35,
+                fg_color="transparent", 
+                hover_color=self.app.theme.SELECTION,
+                text_color=self.app.theme.FOREGROUND, 
+                command=command
+            )
             
-        print(f"[DEBUG] {self.name}: Кнопка успешно добавлена в боковую панель")
-        return button
+            # Размещаем кнопку в панели инструментов
+            if position == "top":
+                button.pack(side="top", pady=5, padx=0)
+            else:
+                button.pack(side="bottom", pady=5, padx=0)
+            
+            print(f"[DEBUG] {self.name}: Кнопка успешно добавлена в боковую панель (запасной метод)")
+            return button
+        else:
+            print(f"[ERROR] {self.name}: Не удалось найти фрейм боковой панели - tools_frame не найден")
+            return None
     
     def _find_sidebar_frame(self):
         """Находит фрейм боковой панели в структуре приложения."""
